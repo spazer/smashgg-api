@@ -40,55 +40,23 @@ namespace smashgg_to_liquipedia
         /// Appends entrants from the json input into entrantList
         /// </summary>
         /// <param name="input">json of the entrants token</param>
-        /// <param name="entrantList">List of entrants to be outputted to</param>
+        /// <param name="playerList">List of entrants to be outputted to</param>
         /// <returns>Returns true if successful, false otherwise</returns>
-        public bool GetEntrants(JToken input, ref Dictionary<int, Entrant> entrantList)
+        public bool GetEntrants(JToken input, ref Dictionary<int, string> playerList)
         {
             if (input == null) return false;
-            
-            // Add bye info
-            entrantList.Add(-1, new Entrant(new Player("Bye", string.Empty)));
-
+                        
             // Divide input into manageable chunks
-            foreach (JToken entrant in input.Children())
+            foreach (JToken player in input.Children())
             {
                 // Get player ID
-                if (entrant[SmashggStrings.ID].IsNullOrEmpty()) { continue; }
-                int id = GetIntParameter(entrant, SmashggStrings.ID);
+                if (player[SmashggStrings.ID].IsNullOrEmpty()) { continue; }
+                int id = GetIntParameter(player, SmashggStrings.ID);
 
-                // Get participant IDs
-                SortedList<int, Player> pIds = new SortedList<int, Player>();
-                foreach (int participant in entrant[SmashggStrings.ParticipantIds])
-                {
-                    Player newPlayer = new Player();
-                    pIds.Add(participant, newPlayer);
-                }
-
-                foreach (KeyValuePair<int, Player> participant in pIds) 
-                {
-                    // Get player ID based off participant ID
-                    int playerId = entrant.SelectToken(SmashggStrings.PlayerIds + "." + participant.Key).Value<int>();
-
-                    // Select player token based off player ID
-                    JToken playerInfo = entrant.SelectToken("mutations.players" + "." + playerId);
-
-                    // Get player tag
-                    pIds[participant.Key].name = playerInfo[SmashggStrings.Gamertag].Value<string>();
-                    pIds[participant.Key].name = pIds[participant.Key].name.Replace("|", "{{!}}");
-
-                    // Get player country. Leave empty if null
-                    if (!playerInfo[SmashggStrings.Country].IsNullOrEmpty())
-                    {
-                        pIds[participant.Key].country = CountryAbbreviation(playerInfo[SmashggStrings.Country].Value<string>());
-                    }
-                    else
-                    {
-                        pIds[participant.Key].country = string.Empty;
-                    }
-                }
-
-                Entrant newEntrant = new Entrant(pIds.Values.ToList<Player>());
-                entrantList.Add(id, newEntrant);
+                // Get player tag
+                string tag = player[SmashggStrings.Gamertag].Value<string>();
+                
+                playerList.Add(id, tag);
             }
 
             return true;
